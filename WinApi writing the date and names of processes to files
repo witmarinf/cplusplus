@@ -1,0 +1,43 @@
+#include <windows.h>
+#include <tlhelp32.h>
+#include <iostream>
+#include <vector>
+#include <numeric>
+#include <chrono>
+
+using namespace std;
+
+int main()
+{
+    vector<string> temp;
+    string s;
+    HANDLE hPlik;
+    DWORD bytesWritten = 0;
+    PROCESSENTRY32 proc32;
+    HANDLE hSnapshot;
+
+    time_t aktualnyCzas = chrono::system_clock::to_time_t(chrono::system_clock::now());
+    temp.push_back(ctime(&aktualnyCzas));
+
+    hSnapshot = CreateToolhelp32Snapshot(TH32CS_SNAPPROCESS, 0);
+    proc32.dwSize = sizeof(PROCESSENTRY32);
+
+    if(Process32First(hSnapshot, &proc32)) {
+        while(Process32Next(hSnapshot, &proc32)){
+            temp.push_back(proc32.szExeFile);
+        }
+    }
+
+    s = accumulate(begin(temp), end(temp), string(),
+                   [](string lhs, const string &rhs) { return lhs.empty() ? rhs : lhs + "\n " + rhs; });
+
+    cout << s << endl;
+
+    hPlik = CreateFile("test.txt", GENERIC_WRITE, 0, NULL, CREATE_ALWAYS, 0, NULL);
+    WriteFile(hPlik, s.c_str(), s.length(), &bytesWritten, NULL);
+     WriteFile(hPlik, "\n", 2, &bytesWritten, NULL);
+    CloseHandle(hSnapshot);
+    CloseHandle(hPlik);
+
+    return 0;
+}
