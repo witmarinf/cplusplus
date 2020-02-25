@@ -1,0 +1,97 @@
+#include<windows.h>
+#include<cmath>
+#include<iostream>
+#include<iomanip>
+#include<vector>
+
+
+#define MAX_THREADS 2
+#define M_PI 3.14159265358979323846
+#define dim 4
+#define dim_bufor 12
+
+using namespace std;
+
+double a [ dim ];
+
+void RESULT_PI( double sum );
+DWORD WINAPI ThreadFunction1( LPVOID lpParam );
+DWORD WINAPI ThreadFunction2( LPVOID lpParam );
+
+
+int main(int argc, char *argv[]){
+    setlocale (LC_ALL, "polish");
+    static char bufor [ dim_bufor ];
+    double sum=0;
+
+    DWORD Thread [MAX_THREADS],dwbread;
+    HANDLE hFile;
+
+    do{
+    hFile = CreateFile ("test.txt", GENERIC_READ ,0 ,NULL ,OPEN_EXISTING ,FILE_ATTRIBUTE_NORMAL ,NULL );
+    ReadFile(hFile, bufor, dim_bufor, &dwbread, NULL);
+    }while(hFile == INVALID_HANDLE_VALUE);
+
+    CloseHandle(hFile);
+
+    a[0] = atoi(bufor);
+     cout<<"N= "<<a[0]<<endl;
+	HANDLE hThread[MAX_THREADS];
+
+	hThread[0] = CreateThread(NULL,0,ThreadFunction1,(void*)&a,0,&Thread[0]);
+    hThread[1] = CreateThread(NULL,0,ThreadFunction2,(void*)&a,0,&Thread[1]);
+
+    for(int i=0; i<MAX_THREADS; i++) {
+        if (hThread[i] == NULL)ExitProcess(1);
+       }
+
+    WaitForMultipleObjects( 2, hThread, TRUE , INFINITE);
+
+    for(int i=1;i<dim-1;i++)
+    {
+       a[4]+=4*a[i];
+    }
+    sum=a[4];
+
+    RESULT_PI(sum);
+
+    for(int i=0; i<MAX_THREADS; i++)CloseHandle(hThread[i]);
+
+system("Pause");
+return 0;
+}
+
+void RESULT_PI(double sum)
+{
+    cout<<"wynik empiryczny liczby PI = "<<sum<<endl;
+    cout<<fixed;
+    cout<<"blad bezwzgledny = "<<setprecision(9)<<abs(sum-M_PI)<<endl;
+    cout<<"blad wzgledny = "<<setprecision(9)<<abs((sum-M_PI)/M_PI)*100<<" %"<<endl;
+}
+
+DWORD WINAPI ThreadFunction1(LPVOID lpParam)
+{
+	do{
+		if( (int)a[0]%2==0)
+		{
+		    a[1]=a[1]+1/(2*a[0]+1);
+			--a[0];
+		}
+	}while(a[0]>=0);
+}
+
+
+DWORD WINAPI ThreadFunction2(LPVOID lpParam)
+{
+    do{
+    if( (int) a[0]%2==1 )
+    {
+         a[2]=a[2]-1/(2*a[0]+1);
+         --a[0];
+    }
+    }while(a[0]>0);
+}
+
+
+
+
